@@ -117,3 +117,11 @@ CREATE TABLE SPOT_PICTURE
 	 primary key(PictureID, SpotID))
 GO 
 
+<<<<<<< HEAD
+=======
+
+
+
+
+	
+>>>>>>> b075effd57a6792b89ffcf8472e77a8c4ef8981b
