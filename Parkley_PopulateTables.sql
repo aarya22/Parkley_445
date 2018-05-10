@@ -46,8 +46,7 @@ go
 
 
 CREATE PROCEDURE uspInsertRental
-@UserID INT,
-@TotalPrice decimal(6,2)
+@UserID INT
 AS
 
 IF @UserID IS NULL 
@@ -57,16 +56,9 @@ IF @UserID IS NULL
 	RETURN
 	END
 	
-IF @TotalPrice IS NULL 
-	BEGIN 
-	PRINT '@TotalPrice IS NULL and will fail on insert statement; process terminated'
-	RAISERROR ('TotalPrice variable @TotalPrice cannot be NULL', 11,1)
-	RETURN
-	END
-	
 BEGIN TRAN G1
-	INSERT INTO RENTAL (UserID, TotalPrice)
-	VALUES (@UserID, @TotalPrice)
+	INSERT INTO RENTAL (UserID)
+	VALUES (@UserID)
 IF @@ERROR <> 0
 	ROLLBACK TRAN G1
 ELSE 
@@ -123,22 +115,20 @@ CREATE PROCEDURE uspInsertDataIntoRental
 @RUN INT
 AS
 
-DECLARE @UserID INT
+DECLARE @UserID2 INT
 DECLARE @UserNumber INT = (SELECT COUNT(*) FROM [USER])
-DECLARE @TotalPrice decimal(6,2)
 
 WHILE @RUN > 0
 	BEGIN
-	SET @UserID = (SELECT RAND() * @UserNumber)
-	IF @UserID <1
+	SET @UserID2 = (SELECT RAND() * @UserNumber)
+	IF @UserID2 <1
 		BEGIN
-		SET @UserID = (SELECT RAND() * @UserNumber)
+		SET @UserID2 = (SELECT RAND() * @UserNumber)
 		END
 	
-	SET @UserID = ROUND(@UserID, 0)
-	SET @TotalPrice = CAST(0.0 AS decimal(6,2))
-	INSERT INTO RENTAL (UserID, TotalPrice)
-	VALUES (@UserID, @TotalPrice)
+	SET @UserID2 = ROUND(@UserID2, 0)
+	EXEC uspInsertRental @UserID = @UserID2
+
 	
 	SET @RUN = @RUN - 1
 	
@@ -190,7 +180,6 @@ WHILE @RatingLevel <= 5.0
 	END
 
 EXEC uspInsertDataIntoRating
-
 SELECT * FROM RATING
 
 
@@ -198,38 +187,37 @@ CREATE PROCEDURE uspInsertDataIntoReview
 @RUN INT
 AS
 
-DECLARE @ReviewTitle varchar(30) = 'Lorem ipsum'
-DECLARE @ReviewBody varchar(4000) = 'Lorem ipsum dolor sit amet, eam ex wisi volumus, ut decore essent vel. Te eum omnis senserit constituam, est ne verterem mediocrem. Duo docendi persecuti in. His euripidis assueverit ne. Illud moderatius cum no, nec dolores salutandi qualisque et, no cum suscipit antiopam scripserit.'
+DECLARE @ReviewTitle2 varchar(30) = 'Lorem ipsum'
+DECLARE @ReviewBody2 varchar(4000) = 'Lorem ipsum dolor sit amet, eam ex wisi volumus, ut decore essent vel. Te eum omnis senserit constituam, est ne verterem mediocrem. Duo docendi persecuti in. His euripidis assueverit ne. Illud moderatius cum no, nec dolores salutandi qualisque et, no cum suscipit antiopam scripserit.'
 
 DECLARE @RatingNumber INT = (SELECT COUNT(*) FROM RATING)
 DECLARE @RentalNumber INT = (SELECT COUNT(*) FROM RENTAL)
 
-DECLARE @RatingID INT
-DECLARE @RentalID INT
+DECLARE @RatingID2 INT
+DECLARE @RentalID2 INT
 
 WHILE @RUN > 0
 	BEGIN
-	SET @RatingID = (SELECT RAND() * @RatingNumber)
-	IF @RatingID <1
+	SET @RatingID2 = (SELECT RAND() * @RatingNumber)
+	IF @RatingID2 <1
 		BEGIN
-		SET @RatingID = (SELECT RAND() * @RatingNumber)
+		SET @RatingID2 = (SELECT RAND() * @RatingNumber)
 		END
-		IF @RatingID <1
+		IF @RatingID2 <1
 			BEGIN
-			SET @RatingID = (SELECT RAND() * @RatingNumber)
+			SET @RatingID2 = (SELECT RAND() * @RatingNumber)
 			END
 		
-	SET @RentalID = (SELECT RAND() * @RentalNumber)
-	IF @RentalID <1
+	SET @RentalID2 = (SELECT RAND() * @RentalNumber)
+	IF @RentalID2 <1
 		BEGIN
-		SET @RentalID = (SELECT RAND() * @RentalNumber)
+		SET @RentalID2 = (SELECT RAND() * @RentalNumber)
 		END
 	
-	SET @RatingID = ROUND(@RatingID, 0)
-	SET @RentalID = ROUND(@RentalID, 0)
+	SET @RatingID2 = ROUND(@RatingID2, 0)
+	SET @RentalID2 = ROUND(@RentalID2, 0)
 	
-	INSERT INTO REVIEW (ReviewTitle, ReviewBody, RentalID, RatingID)
-	VALUES (@ReviewTitle, @ReviewBody, @RentalID, @RatingID)
+	EXEC uspInsertReview @ReviewTitle = @ReviewTitle2, @ReviewBody = @ReviewBody2, @RentalID = @RentalID2, @RatingID = @RatingID2
 	
 	SET @RUN = @RUN - 1
 	
@@ -238,6 +226,20 @@ WHILE @RUN > 0
 EXEC uspInsertDataIntoReview @RUN = 100000
 
 
-DROP TABLE TIMESPOT
-SELECT * FROM TIMESPOT
-SELECT * FROM LOCATION
+
+CREATE FUNCTION fnCalculateTotalPriceForRental (@RentalID INT)
+RETURNS decimal(4,2)
+AS BEGIN
+	DECLARE @TotalPrice decimal(4,2) = CAST((SELECT SUM(HourlyPrice) FROM TIMESPOT WHERE RentalID = @RentalID) AS decimal(4,2))
+	
+	DECLARE @FeePrice decimal(4,2) = CAST((SELECT F.FeePrice FROM FEE F
+		JOIN RENTAL_FEE RF ON F.FeeID = RF.FeeID
+		WHERE RF.RentalID = @RentalID) AS decimal(4,2))
+		
+	SET @TotalPrice = isnull(@TotalPrice, 0) + isnull(@FeePrice, 0)
+	
+	RETURN @TotalPrice
+END
+
+
+
