@@ -114,10 +114,6 @@ GO
 CREATE TABLE SPOT_PICTURE
 	(PictureID int FOREIGN KEY REFERENCES PICTURE(PictureID) not null,
 	 SpotID int FOREIGN KEY REFERENCES SPOT(SpotID) not null,
-	 SpotPictureID int primary key(PictureID, SpotID))
+	 primary key(PictureID, SpotID))
 GO 
 
-
-
-
-	
