@@ -119,3 +119,35 @@ ELSE
 go	
 
 
+CREATE PROCEDURE uspInsertDataIntoRental
+@RUN INT
+AS
+
+DECLARE @UserID INT
+DECLARE @UserNumber INT = (SELECT COUNT(*) FROM [USER])
+DECLARE @TotalPrice decimal(6,2)
+
+WHILE @RUN > 0
+	BEGIN
+	SET @UserID = (SELECT RAND() * @UserNumber)
+	IF @UserID <1
+		BEGIN
+		SET @UserID = (SELECT RAND() * @UserNumber)
+		END
+	
+	SET @UserID = ROUND(@UserID, 0)
+	SET @TotalPrice = CAST((RAND() * 40) AS decimal(6,2))
+	INSERT INTO RENTAL (UserID, TotalPrice)
+	VALUES (@UserID, @TotalPrice)
+	
+	SET @RUN = @RUN - 1
+	
+	END
+
+	
+SELECT * FROM RENTAL
+EXEC uspInsertDataIntoRental @RUN=94000
+
+
+
+
